@@ -62,7 +62,7 @@ func queueTest() (int64, int64) {
 
 	time.Sleep(TIME)
 	cancel()
-	fmt.Println("queue test done")
+	log.Println("queue test done")
 	return added, killed
 }
 
@@ -102,7 +102,7 @@ func channelTest() (int64, int64) {
 
 	time.Sleep(TIME)
 	cancel()
-	fmt.Println("channel test done")
+	log.Println("channel test done")
 	return added, killed
 }
 
@@ -130,7 +130,8 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Channel Test starting with\nTime: %vs\nReaders: %v\nWriters: %v\n", simTime, READERS, WRITERS)
+	fmt.Printf("====================\n")
+    fmt.Printf("Queue Test starting time: %v\nTime: %vs\nReaders: %v\nWriters: %v\n\n", time.Now(),simTime, READERS, WRITERS)
 
 	log.Println("starting queue test")
 	qa, qk := queueTest()
@@ -138,9 +139,9 @@ func main() {
 	log.Println("ended queue test\nstarting channel test\n")
 	ca, ck := channelTest()
 
-	log.Println("queue", qa, qk, qa-qk)
-	log.Println("channel", ca, ck, ca-ck)
+	fmt.Printf("queue\n%v %v %v\n\n", qa, qk, qa-qk)
+	fmt.Printf("channel\n%v %v %v\n\n", ca, ck, ca-ck)
 
-	log.Printf("Push Diff: %v x%0.2f more | Pop Diff: %v x%0.2f more\n", qa-ca, float64(qa)/float64(ca), qk-ck, float64(qk)/float64(ck))
+	fmt.Printf("Push Diff: %v x%0.2f more | Pop Diff: %v x%0.2f more\n", qa-ca, float64(qa)/float64(ca), qk-ck, float64(qk)/float64(ck))
 
 }

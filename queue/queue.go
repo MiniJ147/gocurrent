@@ -20,6 +20,7 @@ type queue[T any] struct {
 	sential *node[T]
 }
 
+// Push into the Queue
 func (q *queue[T]) Push(data T) {
 	newNode := node[T]{data: data}
 
@@ -41,6 +42,8 @@ func (q *queue[T]) Push(data T) {
 	}
 }
 
+// Pop from the Queue
+// Does not block, returns true if successful
 func (q *queue[T]) Pop() (T, bool) {
 	var x T
 
@@ -66,6 +69,16 @@ func (q *queue[T]) Pop() (T, bool) {
 		val := next.data
 		if q.head.CompareAndSwap(head, next) {
 			return val, true
+		}
+	}
+}
+
+// Pop from Queue while blocking until we receive a value
+func (q *queue[T]) PopBlocking() T {
+	for {
+		res, ok := q.Pop()
+		if ok {
+			return res
 		}
 	}
 }
