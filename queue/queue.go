@@ -15,27 +15,27 @@ type node[T any] struct {
 }
 
 type queue[T any] struct {
-	Head    atomic.Pointer[node[T]]
-	Tail    atomic.Pointer[node[T]]
-	Sential *node[T]
+	head    atomic.Pointer[node[T]]
+	tail    atomic.Pointer[node[T]]
+	sential *node[T]
 }
 
 func (q *queue[T]) Push(data T) {
 	newNode := node[T]{data: data}
 
 	for {
-		tail := q.Tail.Load()    // snapshot of tail
+		tail := q.tail.Load()    // snapshot of tail
 		next := tail.next.Load() // next value of our snapshsot
 
 		// someone has appended to our tail
-		if next != nil || q.Tail.Load() != tail {
-			q.Tail.CompareAndSwap(tail, next) // attempt to move this forward
+		if next != nil || q.tail.Load() != tail {
+			q.tail.CompareAndSwap(tail, next) // attempt to move this forward
 			continue
 		}
 
 		// attempt to swap our tail will this value
 		if tail.next.CompareAndSwap(next, &newNode) {
-			q.Tail.CompareAndSwap(tail, &newNode)
+			q.tail.CompareAndSwap(tail, &newNode)
 			break
 		}
 	}
@@ -45,11 +45,11 @@ func (q *queue[T]) Pop() (T, bool) {
 	var x T
 
 	for {
-		head := q.Head.Load()
-		tail := q.Tail.Load()
+		head := q.head.Load()
+		tail := q.tail.Load()
 		next := head.next.Load()
 
-		if q.Head.Load() != head {
+		if q.head.Load() != head {
 			continue
 		}
 
@@ -59,12 +59,12 @@ func (q *queue[T]) Pop() (T, bool) {
 			}
 
 			// attempt to move tail forward -- help out other threads
-			q.Tail.CompareAndSwap(tail, next)
+			q.tail.CompareAndSwap(tail, next)
 			continue
 		}
 
 		val := next.data
-		if q.Head.CompareAndSwap(head, next) {
+		if q.head.CompareAndSwap(head, next) {
 			return val, true
 		}
 	}
