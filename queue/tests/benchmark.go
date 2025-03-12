@@ -5,6 +5,8 @@ Args - Simulation time (seconds), Num Readers, Num Writers
 # Outputs total added, removed, and difference between Queue and Channel
 
 Runs number of readers and number of writers on a shared queue/channel and runs for number of seconds
+
+WARNING NOT FINISHED, FIX DEADLOCK On Channel Pause
 */
 package main
 
@@ -14,6 +16,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/minij147/gocurrent/queue"
@@ -25,20 +29,26 @@ var READERS = 1
 
 // added, killed
 func queueTest() (int64, int64) {
+	wg := sync.WaitGroup{}
 	h := queue.New[int]()
 
+	wg.Add(READERS + WRITERS)
 	ctx, cancel := context.WithCancel(context.Background())
 	var added, killed int64 = 0, 0
 
 	for range WRITERS {
 		go func(ctx context.Context) {
+			var localAdded int64 = 0
+			defer wg.Done()
+
 			for {
 				select {
 				case <-ctx.Done():
+					atomic.AddInt64(&added, localAdded)
 					return
 				default:
 					h.Push(0)
-					added++
+					localAdded++
 				}
 			}
 		}(ctx)
@@ -46,14 +56,19 @@ func queueTest() (int64, int64) {
 
 	for range READERS {
 		go func(ctx context.Context) {
+			var localKilled int64 = 0
+
+			defer wg.Done()
+
 			for {
 				select {
 				case <-ctx.Done():
+					atomic.AddInt64(&killed, localKilled)
 					return
 				default:
 					_, success := h.Pop()
 					if success {
-						killed++
+						localKilled++
 					}
 				}
 			}
@@ -62,25 +77,33 @@ func queueTest() (int64, int64) {
 
 	time.Sleep(TIME)
 	cancel()
+	wg.Wait()
 	log.Println("queue test done")
 	return added, killed
 }
 
 // writes, deletes
 func channelTest() (int64, int64) {
-	c := make(chan int)
+	wg := sync.WaitGroup{}
+	wg.Add(READERS + WRITERS)
+
+	c := make(chan int, 10000)
 	ctx, cancel := context.WithCancel(context.Background())
 	var added, killed int64 = 0, 0
 
 	for range WRITERS {
 		go func(ctx context.Context) {
+			var localAdded int64 = 0
+			defer wg.Done()
+
 			for {
 				select {
 				case <-ctx.Done():
+					atomic.AddInt64(&added, localAdded)
 					return
 				default:
 					c <- 0
-					added++
+					localAdded++
 				}
 			}
 		}(ctx)
@@ -88,13 +111,16 @@ func channelTest() (int64, int64) {
 
 	for range READERS {
 		go func(ctx context.Context) {
+			var localKilled int64 = 0
+			defer wg.Done()
+
 			for {
 				select {
 				case <-ctx.Done():
+					atomic.AddInt64(&killed, localKilled)
 					return
-				default:
-					<-c
-					killed++
+				case <-c:
+					localKilled++
 				}
 			}
 		}(ctx)
@@ -102,6 +128,7 @@ func channelTest() (int64, int64) {
 
 	time.Sleep(TIME)
 	cancel()
+	wg.Wait()
 	log.Println("channel test done")
 	return added, killed
 }
@@ -130,18 +157,19 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("====================\n")
-    fmt.Printf("Queue Test starting time: %v\nTime: %vs\nReaders: %v\nWriters: %v\n\n", time.Now(),simTime, READERS, WRITERS)
+	log.Printf("====================\n")
+	log.Printf("Queue Test starting time: %v\nTime: %vs\nReaders: %v\nWriters: %v\n\n", time.Now(), simTime, READERS, WRITERS)
 
 	log.Println("starting queue test")
 	qa, qk := queueTest()
 
 	log.Println("ended queue test\nstarting channel test\n")
 	ca, ck := channelTest()
+	fmt.Printf("%v,%v,%v,%v,%v\n", simTime, ca, ck, qa, qk)
 
-	fmt.Printf("queue\n%v %v %v\n\n", qa, qk, qa-qk)
-	fmt.Printf("channel\n%v %v %v\n\n", ca, ck, ca-ck)
+	log.Printf("queue\n%v %v %v\n\n", qa, qk, qa-qk)
+	log.Printf("channel\n%v %v %v\n\n", ca, ck, ca-ck)
 
-	fmt.Printf("Push Diff: %v x%0.2f more | Pop Diff: %v x%0.2f more\n", qa-ca, float64(qa)/float64(ca), qk-ck, float64(qk)/float64(ck))
+	log.Printf("Push Diff: %v x%0.2f more | Pop Diff: %v x%0.2f more\n", qa-ca, float64(qa)/float64(ca), qk-ck, float64(qk)/float64(ck))
 
 }
