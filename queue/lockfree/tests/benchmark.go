@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/minij147/gocurrent/queue"
+	"github.com/minij147/gocurrent/queue/lockfree"
 )
 
 var TIME = 10 * time.Second
