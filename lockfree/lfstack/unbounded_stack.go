@@ -10,6 +10,6 @@ Future:
 add descriptor based design
 add a actual proper modern paper implementation of a lockfree stack.
 */
-package stack
+package lfstack
 
 

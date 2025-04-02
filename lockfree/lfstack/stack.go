@@ -1,4 +1,4 @@
-package stack
+package lfstack
 
 type Stack[T any] interface {
 	Capacity() uint32

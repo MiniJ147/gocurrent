@@ -3,7 +3,7 @@ lock-free queue based on "The Art of Multiprocessor Programming"
 Plans to further protect queue and insure correctness along with a
 better more modern queue based off a more modern paper
 */
-package queue
+package lfqueue 
 
 import (
 	"sync/atomic"

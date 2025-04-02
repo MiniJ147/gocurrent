@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/minij147/gocurrent/queue/lockfree"
+	"github.com/minij147/gocurrent/lockfree/lfqueue"
 )
 
 var TIME = 10 * time.Second
@@ -30,7 +30,7 @@ var READERS = 1
 // added, killed
 func queueTest() (int64, int64) {
 	wg := sync.WaitGroup{}
-	h := queue.New[int]()
+	h := lfqueue.New[int]()
 
 	wg.Add(READERS + WRITERS)
 	ctx, cancel := context.WithCancel(context.Background())

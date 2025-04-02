@@ -10,7 +10,7 @@ Future:
 add descriptor based design
 add a actual proper modern paper implementation of a lockfree stack.
 */
-package stack
+package lfstack
 
 import (
 	"sync/atomic"
@@ -35,7 +35,7 @@ func (s *stack[T]) Push(val T) error {
 		headExpected := s.head.Load()
 		valueExpected := s.data[headExpected+1].Load()
 
-		if headExpected == s.capacity-1 {
+		if headExpected == s.capacity {
 			return ErrFullStack
 		}
 
@@ -61,27 +61,29 @@ func (s *stack[T]) Pop() (T, error) {
 }
 
 func (s *stack[T]) Peek() (T, error) {
-	panic("not implemented")
-	var x T
-	return x, nil
-	// for {
-	// 	headExpected := s.head.Load()
-	// 	valueExpected := s.data[headExpected].Load()
-	//
-	// 	// head lagging
-	// 	if s.data[headExpected+1].Load() != nil {
-	// 		s.head.CompareAndSwap(headExpected, headExpected+1)
-	// 		continue
-	// 	}
-	//
-	// 	return x
-	// }
+	var def T
+	for {
+		headExpected := s.head.Load()
+		valueExpected := s.data[headExpected].Load()
+
+		// head lagging
+		if s.data[headExpected+1].Load() != nil {
+			s.head.CompareAndSwap(headExpected, headExpected+1)
+			continue
+		}
+
+		if valueExpected == nil {
+			return def, ErrEmptyStack
+		}
+
+		return *valueExpected, nil
+	}
 }
 
 func NewBounded[T any](capacity uint32) Stack[T] {
 	return &stack[T]{
 		capacity: capacity,
 		head:     atomic.Uint32{},
-		data:     make([]atomic.Pointer[T], capacity+1), // +1 for easier checks
+		data:     make([]atomic.Pointer[T], capacity+2), // +2 for sential
 	}
 }
